@@ -26,6 +26,9 @@ namespace SubSonic.Repository
         PagedList<T> GetPaged<TKey>(Func<T, TKey> orderBy, int pageIndex, int pageSize);
         PagedList<T> GetPaged(int pageIndex, int pageSize);
         PagedList<T> GetPaged(string sortBy, int pageIndex, int pageSize);
+        PagedList<T> GetPaged(Expression<Func<T, bool>> expression, int pageIndex, int pageSize);
+        PagedList<T> GetPaged(Expression<Func<T, bool>> expression, string sortBy, int pageIndex, int pageSize);
+        PagedList<T> GetPaged(Expression<Func<T, bool>> expression, string[] sortBy, int pageIndex, int pageSize);
         IList<T> Search(string column, string value);
         IQueryable<T> Find(Expression<Func<T, bool>> expression);
         
@@ -70,6 +73,9 @@ namespace SubSonic.Repository
         IList<T> Find<T>(Expression<Func<T, bool>> expression) where T : class, new();
         PagedList<T> GetPaged<T>(int pageIndex, int pageSize) where T : class, new();
         PagedList<T> GetPaged<T>(string sortBy, int pageIndex, int pageSize) where T : class, new();
+        PagedList<T> GetPaged<T>(Expression<Func<T, bool>> expression, int pageIndex, int pageSize) where T : class, new();
+        PagedList<T> GetPaged<T>(Expression<Func<T, bool>> expression, string sortBy, int pageIndex, int pageSize) where T : class, new();
+        PagedList<T> GetPaged<T>(Expression<Func<T, bool>> expression, string[] sortBy, int pageIndex, int pageSize) where T : class, new();
 
         object Add<T>(T item) where T : class, new();
         void AddMany<T>(IEnumerable<T> items) where T : class, new();

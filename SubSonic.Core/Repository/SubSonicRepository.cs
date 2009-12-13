@@ -19,6 +19,7 @@ using SubSonic.Extensions;
 using SubSonic.DataProviders;
 using SubSonic.Query;
 using SubSonic.Schema;
+using System.Text;
 
 namespace SubSonic.Repository
 {
@@ -122,32 +123,84 @@ namespace SubSonic.Repository
         /// </summary>
         public PagedList<T> GetPaged(int pageIndex, int pageSize)
         {
-            ITable tbl = GetTable();
-            string orderBy = tbl.PrimaryKey != null ? tbl.PrimaryKey.Name : tbl.Columns[0].Name;
-            return GetPaged(orderBy, pageIndex, pageSize);
+            string[] nothing = null;
+            return GetPaged(null, nothing, pageIndex, pageSize);
         }
 
         /// <summary>
-        /// Returns a server-side Paged List 
+        /// Returns a server-side Paged List, filtered
+        /// </summary>
+        public PagedList<T> GetPaged(Expression<Func<T, bool>> expression, int pageIndex, int pageSize)
+        {
+            string[] nothing = null;
+            return GetPaged(expression, nothing, pageIndex, pageSize);
+        }
+
+        /// <summary>
+        /// Returns a server-side Paged List, sorted
         /// </summary>
         public PagedList<T> GetPaged(string sortBy, int pageIndex, int pageSize)
         {
-            int totalCount = _db.Select.From<T>().GetRecordCount(); //this.GetAll().Count();
-            ITable tbl = GetTable();
+            return GetPaged(null, new string[] { sortBy }, pageIndex, pageSize);
+        }
 
-            var qry = _db.Select.From(tbl)
-                .Paged(pageIndex, pageSize);
+        /// <summary>
+        /// Returns a server-side Paged List, filtered and sorted
+        /// </summary>
+        public PagedList<T> GetPaged(Expression<Func<T, bool>> expression, string sortBy, int pageIndex, int pageSize)
+        {
+            return GetPaged(expression, new string[] { sortBy }, pageIndex, pageSize);
+        }
 
-            if(!sortBy.EndsWith(" desc", StringComparison.InvariantCultureIgnoreCase))
-                qry.OrderAsc(sortBy);
-            else
-                qry.OrderDesc(sortBy.Replace(" desc", ""));
+        /// <summary>
+        /// Returns a server-side Paged List, filtered  with multple sort
+        /// </summary>
+        public PagedList<T> GetPaged(Expression<Func<T, bool>> expression, string[] sortBy, int pageIndex, int pageSize)
+        {
+            // get total count after applying constraints
+            var qry = _db.Select.From<T>();
+            if(expression != null)
+                qry.Constraints = expression.ParseConstraints().ToList();
+            int totalCount = qry.GetRecordCount();
 
-            var list = qry.ExecuteTypedList<T>();
+            // set paging
+            qry = qry.Paged(pageIndex, pageSize);
 
-            PagedList<T> result = new PagedList<T>(list, totalCount, pageIndex, pageSize);
+            // set ordering
+            if (sortBy != null)
+            {
+                // check for unsafe parameters
+                Boolean notsafe = true;
+                ITable tbl = GetTable();
+                foreach(string s in sortBy) {
+                    notsafe = true;
+                    foreach (IColumn c in tbl.Columns)
+                        if (c.Name.ToLowerInvariant() == s.ToLowerInvariant().Replace("asc", string.Empty).Replace("desc", string.Empty).Trim())
+                        {
+                            notsafe = false;
+                            break;
+                        }
+                    if(notsafe)
+                        throw(new Exception("sortby parameter is not found"));
+                }
 
-            //pull the page count
+                StringBuilder sb = new StringBuilder();
+                bool isFirst = true;
+                foreach (string s in sortBy)
+                {
+                    if (s == null)
+                        continue;
+                    if (!isFirst)
+                        sb.Append(", ");
+                    else
+                        isFirst = false;
+                    sb.Append(s);
+                }
+                qry.OrderBys.Add(sb.ToString());
+            }
+
+            PagedList<T> result = new PagedList<T>(qry.ExecuteTypedList<T>(), totalCount, pageIndex, pageSize);
+
             return result;
         }
 

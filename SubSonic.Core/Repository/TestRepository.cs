@@ -92,6 +92,21 @@ namespace SubSonic.Repository
             return new PagedList<T>(_items.ToList().AsQueryable(), pageIndex, pageSize);
         }
 
+        public PagedList<T> GetPaged(Expression<Func<T, bool>> expression, int pageIndex, int pageSize)
+        {
+            return new PagedList<T>(_items.ToList().AsQueryable(), pageIndex, pageSize);
+        }
+
+        public PagedList<T> GetPaged(Expression<Func<T, bool>> expression, string sortBy, int pageIndex, int pageSize)
+        {
+            return new PagedList<T>(_items.ToList().AsQueryable(), pageIndex, pageSize);
+        }
+
+        public PagedList<T> GetPaged(Expression<Func<T, bool>> expression, string[] sortBy, int pageIndex, int pageSize)
+        {
+            return new PagedList<T>(_items.ToList().AsQueryable(), pageIndex, pageSize);
+        }
+
         public ITable GetTable()
         {
             return _db.FindTable(typeof(T).Name);

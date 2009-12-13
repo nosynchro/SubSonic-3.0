@@ -15,6 +15,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using SubSonic.DataProviders;
@@ -341,12 +342,14 @@ namespace SubSonic.Extensions
         ///</summary>
         public static ISqlQuery ToUpdateQuery<T>(this T item, IDataProvider provider) where T : class, new()
         {
-            Type type = typeof(T);
-            var settings = item.ToDictionary();
-
             ITable tbl = provider.FindOrCreateTable<T>();
 
+            if (tbl == null)
+                return null;
+
             Update<T> query = new Update<T>(tbl.Provider);
+            var settings = item.ToDictionary();
+
             if(item is IActiveRecord)
             {
                 var ar = item as IActiveRecord;
@@ -386,22 +389,31 @@ namespace SubSonic.Extensions
         ///</summary>
         public static ISqlQuery ToInsertQuery<T>(this T item, IDataProvider provider) where T : class, new()
         {
-            Type type = typeof(T);
             ITable tbl = provider.FindOrCreateTable<T>();
-            Insert query = null;
 
-            if(tbl != null)
+            if (tbl == null)
+                return null;
+
+            Insert query = new Insert(provider).Into<T>(tbl);
+            var hashed = item.ToDictionary();
+
+            if (item is IActiveRecord)
             {
-                var hashed = item.ToDictionary();
-                query = new Insert(provider).Into<T>(tbl);
-                foreach(string key in hashed.Keys)
+                var ar = item as IActiveRecord;
+                foreach (var dirty in ar.GetDirtyColumns())
+                {
+                    IColumn col = tbl.GetColumn(dirty.Name);
+                    if (col != null && !col.AutoIncrement && !col.IsReadOnly)
+                        query.Value(col.QualifiedName, hashed[dirty.Name], col.DataType);
+                }
+            }
+            else
+            {
+                foreach (string key in hashed.Keys)
                 {
                     IColumn col = tbl.GetColumn(key);
-                    if(col != null)
-                    {
-                        if(!col.AutoIncrement && !col.IsReadOnly)
+                    if (col != null && !col.AutoIncrement && !col.IsReadOnly)
                             query.Value(col.QualifiedName, hashed[key], col.DataType);
-                    }
                 }
             }
 

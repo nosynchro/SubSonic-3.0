@@ -21,6 +21,7 @@ using SubSonic.DataProviders;
 using SubSonic.Query;
 using SubSonic.Schema;
 using SubSonic.Linq.Structure;
+using System.Text;
 
 namespace SubSonic.Repository
 {
@@ -133,15 +134,8 @@ namespace SubSonic.Repository
         /// <returns></returns>
         public PagedList<T> GetPaged<T>(int pageIndex, int pageSize) where T : class, new()
         {
-            if (_options.Contains(SimpleRepositoryOptions.RunMigrations))
-                Migrate<T>();
-            var tbl = _provider.FindOrCreateTable<T>();
-            var qry = new Select(_provider).From(tbl).Paged(pageIndex + 1, pageSize).OrderAsc(tbl.PrimaryKey.Name);
-            var total =
-                new Select(_provider, new Aggregate(tbl.PrimaryKey, AggregateFunction.Count)).From<T>().ExecuteScalar();
-            int totalRecords = 0;
-            int.TryParse(total.ToString(), out totalRecords);
-            return new PagedList<T>(qry.ToList<T>(), totalRecords, pageIndex, pageSize);
+            string[] nothing = null;
+            return GetPaged<T>(null, nothing, pageIndex, pageSize);
         }
 
         /// <summary>
@@ -154,12 +148,53 @@ namespace SubSonic.Repository
         /// <returns></returns>
         public PagedList<T> GetPaged<T>(string sortBy, int pageIndex, int pageSize) where T : class, new()
         {
+            return GetPaged<T>(null, new string[] { sortBy }, pageIndex, pageSize);
+        }
+
+        public PagedList<T> GetPaged<T>(Expression<Func<T, bool>> expression, int pageIndex, int pageSize) where T : class, new()
+        {
+            string[] nothing = null;
+            return GetPaged<T>(expression, nothing, pageIndex, pageSize);
+        }
+
+        public PagedList<T> GetPaged<T>(Expression<Func<T, bool>> expression, string sortBy, int pageIndex, int pageSize) where T : class, new()
+        {
+            return GetPaged<T>(expression, new string[] { sortBy }, pageIndex, pageSize);
+        }
+
+        public PagedList<T> GetPaged<T>(Expression<Func<T, bool>> expression, string[] sortBy, int pageIndex, int pageSize) where T : class, new()
+        {
             if (_options.Contains(SimpleRepositoryOptions.RunMigrations))
                 Migrate<T>();
+
             var tbl = _provider.FindOrCreateTable<T>();
-            var qry = new Select(_provider).From(tbl).Paged(pageIndex + 1, pageSize).OrderAsc(sortBy);
-            var total =
-                new Select(_provider, new Aggregate(tbl.PrimaryKey, AggregateFunction.Count)).From<T>().ExecuteScalar();
+
+            // get total count 
+            var qry = new Select(_provider).From<T>();
+            if(expression != null)
+                qry.Constraints = expression.ParseConstraints().ToList();
+            var total = qry.GetRecordCount();
+
+            // add paging
+            qry = qry.Paged(pageIndex + 1, pageSize);
+
+            // add sorting
+            if (sortBy != null)
+            {
+                StringBuilder sb = new StringBuilder();
+                bool isFirst = true;
+                foreach (string s in sortBy)
+                {
+                    if (s == null)
+                        continue;
+                    if (!isFirst)
+                        sb.Append(", ");
+                    else
+                        isFirst = false;
+                    sb.Append(s);
+                }
+                qry.OrderBys.Add(sb.ToString());
+            }
 
             return new PagedList<T>(qry.ToList<T>(), (int)total, pageIndex, pageSize);
         }

@@ -159,7 +159,7 @@ namespace SubSonic.DataProviders
                 DbDataAdapter da = Factory.CreateDataAdapter();
                 da.SelectCommand = cmd;
                 da.Fill(ds);
-
+                qry.GetOutputParameters(cmd);
                 return ds;
             }
         }
@@ -188,6 +188,7 @@ namespace SubSonic.DataProviders
                 cmd.CommandText = qry.CommandSql;
                 AddParams(cmd, qry);
                 result = cmd.ExecuteScalar();
+                qry.GetOutputParameters(cmd);
             }
 
             return result;
