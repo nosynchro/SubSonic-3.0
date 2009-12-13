@@ -177,8 +177,16 @@ namespace SubSonic.Extensions
 						var nullEnumObjectValue = Enum.ToObject(Nullable.GetUnderlyingType(currentProp.PropertyType), rdr.GetValue(i));
 						currentProp.SetValue(item, nullEnumObjectValue, null);
 					}
-                    else
-                        currentProp.SetValue(item, rdr.GetValue(i).ChangeTypeTo(valueType), null);
+                    else{
+                        var val = rdr.GetValue(i);
+                        var valType = val.GetType();
+                        //try to assign it
+                        if (val.GetType().IsAssignableFrom(valueType)){
+                            currentProp.SetValue(item, val, null);
+                        } else {
+                            currentProp.SetValue(item, rdr.GetValue(i).ChangeTypeTo(valueType), null);
+                        }
+                    }
                 }
                 else if(currentField != null && !DBNull.Value.Equals(rdr.GetValue(i)))
                 {
@@ -366,7 +374,7 @@ namespace SubSonic.Extensions
                     IColumn col = tbl.GetColumn(key);
                     if(col != null)
                     {
-                        if(!col.IsPrimaryKey && !col.IsReadOnly)
+                        if (!col.IsPrimaryKey && !col.IsComputed)
                             query.Set(col).EqualTo(settings[key]);
                     }
                 }
@@ -403,7 +411,7 @@ namespace SubSonic.Extensions
                 foreach (var dirty in ar.GetDirtyColumns())
                 {
                     IColumn col = tbl.GetColumn(dirty.Name);
-                    if (col != null && !col.AutoIncrement && !col.IsReadOnly)
+                    if (col != null && !col.AutoIncrement && !col.IsComputed)
                         query.Value(col.QualifiedName, hashed[dirty.Name], col.DataType);
                 }
             }
