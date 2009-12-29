@@ -39,22 +39,6 @@ namespace SubSonic.Tests.BugReports {
             Assert.Equal(true, list.FirstOrDefault().IsLoaded());
         }
 
-        [Fact]
-        public void Github_Issue95_Booleans_Always_Set_True() {
-            var p = Product.SingleOrDefault(x => x.ProductID == 1);
-            p.Discontinued = true;
-            p.Save();
-
-            p = Product.SingleOrDefault(x => x.ProductID == 1);
-            Assert.Equal(p.Discontinued, true);
-
-            p.Discontinued = false;
-            p.Save();
-            
-            p = Product.SingleOrDefault(x => x.ProductID == 1);
-            Assert.Equal(p.Discontinued, false);
-        }
-
 
         [Fact]
         public void UsingLinq_With_ActiveRecord_Product_Should_Set_IsNew_False() {
