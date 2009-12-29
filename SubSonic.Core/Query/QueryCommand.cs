@@ -12,6 +12,7 @@
 //   rights and limitations under the License.
 // 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -171,7 +172,7 @@ namespace SubSonic.Query
         /// <summary>
         /// 
         /// </summary>
-        public List<object> OutputValues;
+        public Hashtable OutputValues;
 
         private QueryParameterCollection parameters;
 
@@ -185,7 +186,7 @@ namespace SubSonic.Query
             CommandSql = sql;
             CommandType = CommandType.Text;
             parameters = new QueryParameterCollection();
-            OutputValues = new List<object>();
+            OutputValues = new Hashtable();
             Provider = provider;
         }
 
@@ -379,6 +380,7 @@ namespace SubSonic.Query
                 p.ParameterName = param.ParameterName;
                 p.Value = param.ParameterValue ?? DBNull.Value;
                 p.DbType = param.DataType;
+                p.Direction = param.Mode;
                 cmd.Parameters.Add(p);
             }
             return cmd;
@@ -399,7 +401,7 @@ namespace SubSonic.Query
                     {
                         object oVal = command.Parameters[p.ParameterName].Value;
                         p.ParameterValue = oVal;
-                        OutputValues.Add(oVal);
+                        OutputValues.Add(p.ParameterName, p.ParameterValue);
                     }
                 }
             }
