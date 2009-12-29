@@ -308,7 +308,7 @@ namespace SubSonic.Linq.Translation.MySql
                 } else {
                     sb.Append("CONVERT(, ");
                     this.Visit(m.Object);
-                    sb.Append("CONVERT(, ");
+                    sb.Append(", VARCHAR(200))");
                 }
                 return m;
             } else if (m.Method.Name == "Equals") {
