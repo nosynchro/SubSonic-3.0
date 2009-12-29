@@ -103,6 +103,19 @@ namespace SubSonic.DataProviders
 
         public DbDataReader ExecuteReader(QueryCommand qry)
         {
+            DbCommand cmd = null;
+            return ExecuteReader(qry, ref cmd);
+        }
+
+        /// <summary>
+        /// Returns a reader and populates the DbCommand object for
+        /// use after the reader has been closed.
+        /// </summary>
+        /// <param name="qry">Query to execute upon</param>
+        /// <param name="cmd">Empty DbCommand object to populate</param>
+        /// <returns></returns>
+        public DbDataReader ExecuteReader(QueryCommand qry, ref DbCommand cmd)
+        {
             AutomaticConnectionScope scope = new AutomaticConnectionScope(this);
 
             if(Log != null)
@@ -111,7 +124,7 @@ namespace SubSonic.DataProviders
 #if DEBUG
             //Console.Error.WriteLine("ExecuteReader(QueryCommand):\r\n{0}", qry.CommandSql);
 #endif
-            DbCommand cmd = scope.Connection.CreateCommand();
+            cmd = scope.Connection.CreateCommand();
             cmd.Connection = scope.Connection; //CreateConnection();
 
             cmd.CommandText = qry.CommandSql;
@@ -243,9 +256,16 @@ namespace SubSonic.DataProviders
 
         public IList<T> ToList<T>(QueryCommand qry) where T : new()
         {
+            DbCommand cmd = null;
+            return ToList<T>(qry, ref cmd);
+        }
+
+        public IList<T> ToList<T>(QueryCommand qry, ref DbCommand cmd) where T : new()
+        {
             List<T> result;
-            using(var rdr = ExecuteReader(qry))
+            using (var rdr = ExecuteReader(qry, ref cmd))
                 result = rdr.ToList<T>();
+            qry.GetOutputParameters(cmd);
 
             return result;
         }

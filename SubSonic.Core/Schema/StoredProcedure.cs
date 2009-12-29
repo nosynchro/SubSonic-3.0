@@ -11,6 +11,7 @@
 //   implied. See the License for the specific language governing
 //   rights and limitations under the License.
 // 
+using System.Collections;
 using System.Collections.Generic;
 using System.Data;
 using System.Data.Common;
@@ -35,6 +36,14 @@ namespace SubSonic.Schema
 
         public QueryCommand Command { get; private set; }
 
+        public Hashtable OutputValues
+        {
+            get
+            {
+                return Command.OutputValues;
+            }
+        }
+
         public string ParameterName
         {
             get
@@ -47,7 +56,7 @@ namespace SubSonic.Schema
 
         #region IStoredProcedure Members
 
-        public object Output { get; set; }
+        public object Output { get; set; } // use for anything?
 
         public string SchemaName { get; set; }
         public string FriendlyName { get; set; }
