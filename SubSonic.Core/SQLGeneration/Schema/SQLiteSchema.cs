@@ -157,8 +157,9 @@ namespace SubSonic.SqlGeneration.Schema
                 case "nvarchar":
                     return DbType.String;
                 case "bit":
-                case "tinyint":
                     return DbType.Boolean;
+                case "tinyint":
+                    return DbType.Byte;
                 case "decimal":
                 case "float":
                 case "newdecimal":
