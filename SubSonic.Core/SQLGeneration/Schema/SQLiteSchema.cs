@@ -42,11 +42,12 @@ namespace SubSonic.SqlGeneration.Schema
                 case DbType.StringFixedLength:
                     return "nvarchar";
                 case DbType.Boolean:
-                    return "tinyint";
+                    return "bit";
                 case DbType.SByte:
                 case DbType.Binary:
-                case DbType.Byte:
                     return "longblob";
+                case DbType.Byte:
+                    return "tinyint";
                 case DbType.Currency:
                     return "money";
                 case DbType.Time:
