@@ -238,7 +238,7 @@ namespace SubSonic.Query
                     // EK: The line below is intentional. See: http://weblogs.asp.net/fbouma/archive/2009/06/25/linq-beware-of-the-access-to-modified-closure-demon.aspx
                     Setting setting = s;
 
-                    var col = table.Columns.SingleOrDefault(x => x.Name.Equals(setting.ColumnName, StringComparison.InvariantCultureIgnoreCase));
+                    var col = table.Columns.SingleOrDefault(x => x.QualifiedName.Equals(setting.ColumnName, StringComparison.InvariantCultureIgnoreCase));
                     if(col != null)
                         s.DataType = col.DataType;
                 }
