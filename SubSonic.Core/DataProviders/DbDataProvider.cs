@@ -209,20 +209,22 @@ namespace SubSonic.DataProviders
 
         public T ExecuteSingle<T>(QueryCommand qry) where T : new()
         {
+            DbCommand cmd = null;
+            return ExecuteSingle<T>(qry, ref cmd);
+        }
+
+        public T ExecuteSingle<T>(QueryCommand qry, ref DbCommand cmd) where T : new()
+        {
             if(Log != null)
                 Log.WriteLine(qry.CommandSql);
 
-#if DEBUG
-            //Console.Error.WriteLine("ExecuteSingle<T>(QueryCommand): {0}.", qry.CommandSql);
-#endif
             T result = default(T);
-            using(IDataReader rdr = ExecuteReader(qry))
-            {
-                List<T> items = rdr.ToList<T>();
 
-                if(items.Count > 0)
-                    result = items[0];
-            }
+            IList<T> items = ToList<T>(qry, ref cmd);
+
+            if (items.Count > 0)
+                result = items[0];
+
             return result;
         }
 
@@ -236,9 +238,6 @@ namespace SubSonic.DataProviders
             if(Log != null)
                 Log.WriteLine(qry.CommandSql);
 
-#if DEBUG
-            //Console.Error.WriteLine("ExecuteQuery(QueryCommand): {0}.", qry.CommandSql);
-#endif
             int result;
             using(AutomaticConnectionScope automaticConnectionScope = new AutomaticConnectionScope(this))
             {

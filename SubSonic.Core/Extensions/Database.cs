@@ -18,6 +18,7 @@ using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
+using System.Threading;
 using SubSonic.DataProviders;
 using SubSonic.Query;
 using SubSonic.Schema;
@@ -119,6 +120,99 @@ namespace SubSonic.Extensions
             return result;
         }
 
+        // Dictionary to store cached properites and fields
+        public static IDictionary<string, PropertyInfo[]> PropertiesCache = new Dictionary<string, PropertyInfo[]>();
+        public static IDictionary<string, FieldInfo[]> FieldsCache = new Dictionary<string, FieldInfo[]>();
+
+        // Help with locking
+        private static ReaderWriterLockSlim propertiesCacheLock = new ReaderWriterLockSlim();
+        private static ReaderWriterLockSlim fieldsCacheLock = new ReaderWriterLockSlim();
+
+        /// <summary>
+        /// Get an array of PropertyInfo for this type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns>PropertyInfo[] for this type</returns>
+        public static PropertyInfo[] GetCachedProperties<T>()
+        {
+            PropertyInfo[] props = new PropertyInfo[0];
+            Type iType = typeof(T);
+
+            if (propertiesCacheLock.TryEnterUpgradeableReadLock(100))
+            {
+                try
+                {
+                    if (!PropertiesCache.TryGetValue(iType.FullName, out props))
+                    {
+                        props = iType.GetProperties();
+                        if (propertiesCacheLock.TryEnterWriteLock(100))
+                        {
+                            try
+                            {
+                                PropertiesCache.Add(iType.FullName, props);
+                            }
+                            finally
+                            {
+                                propertiesCacheLock.ExitWriteLock();
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    propertiesCacheLock.ExitUpgradeableReadLock();
+                }
+                return props;
+            }
+            else
+            {
+                return iType.GetProperties();
+            }
+        }
+
+        /// <summary>
+        /// Get an array of FieldInfo for this type
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns>FieldInfo[] for this type</returns>
+        public static FieldInfo[] GetCachedFields<T>()
+        {
+            FieldInfo[] fields = new FieldInfo[0];
+            Type iType = typeof(T);
+
+            if (fieldsCacheLock.TryEnterUpgradeableReadLock(100))
+            {
+                try
+                {
+                    if (!FieldsCache.TryGetValue(iType.FullName, out fields))
+                    {
+                        fields = iType.GetFields();
+                        if (fieldsCacheLock.TryEnterWriteLock(100))
+                        {
+                            try
+                            {
+                                FieldsCache.Add(iType.FullName, fields);
+                            }
+                            finally
+                            {
+                                fieldsCacheLock.ExitWriteLock();
+                            }
+                        }
+                    }
+                }
+                finally
+                {
+                    fieldsCacheLock.ExitUpgradeableReadLock();
+                }
+                return fields;
+            }
+            else
+            {
+                return iType.GetFields();
+            }
+        }
+
+
         /// <summary>
         /// Takes the properties of an object and turns them into SubSonic.Query.Constraint
         /// </summary>
@@ -143,12 +237,18 @@ namespace SubSonic.Extensions
         /// </summary>
         public static void Load<T>(this IDataReader rdr, T item)
         {
-            Type iType = typeof(T);
+            PropertyInfo[] cachedProps = GetCachedProperties<T>();
+            FieldInfo[] cachedFields = GetCachedFields<T>();
 
-            PropertyInfo[] cachedProps = iType.GetProperties();
-            FieldInfo[] cachedFields = iType.GetFields();
+            Load<T>(rdr, item, cachedProps, cachedFields);
+        }
 
-            PropertyInfo currentProp;
+        /// <summary>
+        /// Coerces an IDataReader to try and load an object using name/property matching
+        /// </summary>
+        public static void Load<T>(this IDataReader rdr, T item, PropertyInfo[] cachedProps, FieldInfo[] cachedFields)
+        {
+            PropertyInfo currentProp = null;
             FieldInfo currentField = null;
 
             for(int i = 0; i < rdr.FieldCount; i++)
@@ -333,13 +433,15 @@ namespace SubSonic.Extensions
         public static List<T> ToList<T>(this IDataReader rdr) where T : new()
         {
             List<T> result = new List<T>();
-            Type iType = typeof(T);
+
+            PropertyInfo[] cachedProps = GetCachedProperties<T>();
+            FieldInfo[] cachedFields = GetCachedFields<T>();
 
             //set the values        
             while(rdr.Read())
             {
                 T item = new T();
-                rdr.Load(item);
+                rdr.Load(item, cachedProps, cachedFields);
                 result.Add(item);
             }
             return result;
