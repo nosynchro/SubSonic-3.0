@@ -170,7 +170,7 @@ namespace SubSonic.Extensions
     	public static ITable ToSchemaTable(this Type type, IDataProvider provider)
         {
             string tableName = type.Name;
-            tableName = tableName.MakePlural();
+            //tableName = tableName.MakePlural();
 
 			var typeAttributes = type.GetCustomAttributes(false);
 			var tableNameAttr = (SubSonicTableNameOverrideAttribute)typeAttributes.FirstOrDefault(x => x.ToString().Equals("SubSonic.SqlGeneration.Schema.SubSonicTableNameOverrideAttribute"));
