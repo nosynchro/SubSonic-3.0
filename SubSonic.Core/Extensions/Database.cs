@@ -471,7 +471,10 @@ namespace SubSonic.Extensions
                 foreach (var dirty in ar.GetDirtyColumns())
                 {
                     if (!dirty.IsPrimaryKey && !dirty.IsReadOnly)
-                        query.Set(dirty.Name).EqualTo(settings[dirty.Name]);
+                    {
+                        IColumn col = tbl.GetColumn(dirty.Name);
+                        query.CreateSetting(dirty.Name, col.DataType, false).EqualTo(settings[dirty.Name]);
+                    }
                 }
             }
             else
@@ -482,7 +485,7 @@ namespace SubSonic.Extensions
                     if (col != null)
                     {
                         if (!col.IsPrimaryKey && !col.IsComputed)
-                            query.Set(col).EqualTo(settings[key]);
+                            query.CreateSetting(key, col.DataType, false).EqualTo(settings[key]);
                     }
                 }
             }
